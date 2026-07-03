@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import {connectDB} from '../database';
 import User from './models/User';
 import authRoutes from './Routes.ts/authRoutes';
+import gymRoutes from './Routes.ts/gymRoutes';
 
 
 
@@ -12,6 +13,7 @@ const app=express();
 app.use(express.json());
 
 app.use("/api/user",authRoutes) 
+app.use("/api/gym",gymRoutes)
 
 
 app.listen(process.env.PORT,()=>{
