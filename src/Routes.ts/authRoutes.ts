@@ -3,8 +3,10 @@ import { loginUser, registerGym } from "../controllers/auth/authcontroller";
 
 const router = Router();
 
-router.post("/register/gym", registerGym);
+
 router.post("/login",loginUser);
+router.post("/register/gym", registerGym);
+
 
 
 export default router;
