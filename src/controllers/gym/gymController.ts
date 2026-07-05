@@ -10,6 +10,7 @@ import Membership from '../../models/Membership';
 
 
 
+
 export const getProfile=async (req:Request, res:Response)=>{
   try{
     const user=(req as any).user;
@@ -131,9 +132,13 @@ export const getMembershipById=async (req:Request,res:Response)=>{
     if(user.role!=="OWNER"){
       return res.status(403).json({error:"Access denied"});
     }
+    const gymId=await Gym.findById(user._id)
+    if(!gymId){
+      return res.status(404).json({error:"Gym not found"});
+    }
 
     const id=req.params.id;
-    const membership=await Membership.findById({_id:id});
+    const membership=await Membership.findOne({_id:id,gymId:gymId?._id});
     if(!membership){
       return res.status(404).json({error:"Membership plan not found"});
     }
@@ -150,10 +155,17 @@ export const updateMembership=async (req:Request,res:Response)=>{
   try{
     let {planName,price}=req.body
     const user=(req as any).user
+    if(user.role!=="OWNER"){
+      return res.status(403).json({error:"Access denied"});
+    }
     const membershipId=req.params.id
     console.log("1")
+    const gymId=await Gym.findById(user._id)
+    if(!gymId){
+      return res.status(404).json({error:"Gym not found"});
+    }
 
-    const membership=await Membership.findById(membershipId)
+    const membership=await Membership.findOne({_id:membershipId,gymId:gymId?._id})
     console.log("2")
     if(planName===undefined){
       planName=membership?.planName
@@ -179,4 +191,34 @@ export const updateMembership=async (req:Request,res:Response)=>{
     res.status(500).json({error:"Server error",err});
   }
 
+}
+
+
+export const removeMembership=async (req: Request,res:Response)=>{
+  try{
+    console.log("removeMembership")
+    const user=(req as any).user
+    if(user.role!=="OWNER"){
+      return res.status(403).json({error:"Access denied"});
+    }
+    const membershipId=req.params.id
+    console.log(user)
+    const gym = await Gym.findOne({ ownerId: user._id })
+    if(!gym){
+      return res.status(404).json({error:"Gym not found"});
+    }
+
+    const membershipData= await Membership.findOneAndDelete({
+      _id: membershipId,
+      gymId:gym._id
+
+    })
+    if(!membershipData){
+      return res.status(404).json({error:"Membership not find"});
+    }
+    res.status(200).json({message:"Delete Sucessfully",data:membershipData})
+
+  }catch(err){
+    res.status(500).json({error:"Server error",err});
+  }
 }
