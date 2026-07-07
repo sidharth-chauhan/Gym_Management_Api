@@ -7,7 +7,7 @@ interface IMember extends Document{
   gymId: mongoose.Types.ObjectId;
   weight?: Number;
   diet?: string;
-  dob?: Date;
+  dob?: Date; 
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
   joinedDate: Date;
   membershipEndDate: Date;
@@ -35,13 +35,16 @@ const memberSchema=new Schema<IMember>({
     required: true
   },
   weight:{
-    type: Number
+    type: Number,
+    default: 0
   },
   diet:{
-    type: String
+    type: String,
+    default: "No diet plan"
   },
   dob:{
-    type: Date
+    type: Date,
+    default: new Date("2000-01-01")
   },
   status:{
     type: String,

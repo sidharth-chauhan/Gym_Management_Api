@@ -8,6 +8,7 @@ import Payment from '../../models/Payment';
 import Membership from '../../models/Membership';
 import bcrypt from "bcrypt";
 import { spec } from 'node:test/reporters';
+import { clear } from 'node:console';
 
 
 
@@ -402,6 +403,193 @@ export const removeTrainer=async(req:Request,res:Response)=>{
     }
     res.status(200).json({message:"Trainer removed successfully"});
 
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
+
+
+export const addMember=async(req:Request,res:Response)=>{
+  try{
+    const {name,email,password,phoneNumber,trainerId,membershipId,weight,diet,dob}=req.body
+
+    if(!name || !email || !password || !trainerId || !membershipId){
+      return res.status(400).json({error:"All fields are required"});
+    }
+    const owner=(req as any).user;
+    if(!owner){
+      return res.status(403).json({error:"Access denied"});
+    }
+    const gymId=await Gym.findOne({ownerId:owner._id});
+
+    if(await User.findOne({email:email})){
+      return res.status(400).json({error:"User already exists"});
+    }
+    const salt=Number(process.env.SALT);
+    const hashpass=await bcrypt.hash(password,salt); 
+
+    const user=await User.create({
+      name,
+      email,
+      role:"MEMBER",
+      password: hashpass,
+      phoneNumber
+    })
+    const membership=await Membership.findById(membershipId);
+    const joinedDate=new Date();
+    const membershipEndDate=new Date(joinedDate.getTime() + membership!.durationInMonth * 30 * 24 * 60 * 60 * 1000);
+    const member=await Member.create({
+      trainerId,
+      membershipId,
+      userId:user._id,
+      gymId:gymId?._id,
+      weight,
+      diet,
+      dob,
+      status:"ACTIVE",
+      joinedDate,
+      membershipEndDate
+    })
+    const data={
+      memberId: member._id,
+      name: user.name,
+      userId: user._id,
+    }
+    res.status(201).json({message:"Member added successfully",member: data});
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
+
+
+export const getMembers=async(req:Request,res:Response)=>{
+  try{
+    const user=(req as any).user;
+    if(user.role!=="OWNER"){
+      return res.status(403).json({error:"Access denied"});
+    }
+
+    const gymId=await Gym.findOne({ownerId:user._id});
+    if(!gymId){
+      return res.status(404).json({error:"Gym not found"});
+    }
+    const members=await Member.find({gymId:gymId._id}).populate("userId","-password").populate("trainerId","-password").populate("membershipId");
+
+    
+    
+    console.log(members);
+    const data=await Promise.all(
+      members.map(async (member)=>{
+      const trainerName=await User.findById((member.trainerId as any).userId).select("name");
+      return{
+        userId:(member.userId as any)._id,
+        name:(member.userId as any).name,
+        trainerId:(member.trainerId as any)._id,
+        trainerIdName:trainerName?.name,
+        membershipId:(member.membershipId as any)._id,
+        membershipPlanName:(member.membershipId as any).planName,
+      }
+    }))
+    console.log(data);
+    res.status(200).json({message:"Members",data:data});
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
+
+export const getMemberById=async(req:Request,res:Response)=>{
+  try{
+    const memberId=req.params.id;
+    const owner=(req as any).user;
+    if(owner.role!=="OWNER"){
+      return res.status(403).json({error:"Access denied"});
+    }
+    if(!memberId){
+      return res.status(400).json({error:"Member id is required"});
+    }
+    const member=await Member.findById(memberId).populate("userId","-password").populate("trainerId").populate("membershipId");
+    console.log(member);
+    const trainerName=await User.findById((member?.trainerId as any).userId).select("name");
+    const data={
+      memberId: member?._id,
+      userId: (member?.userId as any)._id,
+      memberName: (member?.userId as any).name,
+      trinerId: (member?.trainerId as any)._id,
+      trainerName: trainerName?.name,
+      membershipId: (member?.membershipId as any)._id,
+      membershipPlanName: (member?.membershipId as any).planName,
+      membershipEndDate: member?.membershipEndDate
+    }
+    console.log(data);
+    res.status(200).json({message:"Member",data:data});
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
+
+export const updateMember=async(req:Request,res:Response)=>{
+  try{
+    const {trainerId,membershipId,weight,diet}=req.body;
+    const user=(req as any).user;
+    const memberId=req.params.id;
+    if(user.role!=="OWNER"){
+      return res.status(403).json({error:"Access denied"});
+    }
+
+    if(trainerId && await Trainer.findById(trainerId)===null){
+      return res.status(404).json({error:"Trainer not found"});
+    }
+    if(membershipId && await Membership.findById(membershipId)===null){
+      return res.status(404).json({error:"Membership plan not found"});
+    }
+    const update=await Member.findByIdAndUpdate(
+      memberId,
+      {
+        trainerId,
+        membershipId,
+        weight,
+        diet
+      },
+      {
+        new:true
+      }
+
+    )
+    res.status(200).json({message:"Member updated successfully",data:update});
+
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
+
+export const removeMember=async(req:Request,res:Response)=>{
+  try{
+    const user=(req as any).user;
+    const memberId=req.params.id;
+    if(user.role!=="OWNER"){
+      return res.status(403).json({error:"Access denied"});
+    }
+    const member=await Member.findByIdAndDelete(memberId);
+    const userDelete=await User.findByIdAndDelete(member?.userId);
+
+    if(!member){
+      return res.status(404).json({error:"Member not found"});
+    }
+    res.status(200).json({message:"Member removed successfully"});
   }catch(err){
     console.error(err);
     res.status(500).json({error:"Server error",err});

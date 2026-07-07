@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { addMembership, addTrainer, dashboard, getMembershipById, getMemberships, getProfile, getTrainer, getTrainerById, removeMembership, removeTrainer, updateMembership, updateTrainer } from "../controllers/gym/gymController";
+import { addMember, addMembership, addTrainer, dashboard, getMemberById, getMembers, getMembershipById, getMemberships, getProfile, getTrainer, getTrainerById, removeMember, removeMembership, removeTrainer, updateMember, updateMembership, updateTrainer } from "../controllers/gym/gymController";
 import { verifyToken } from "../utils/jwt";
+import { verify } from "node:crypto";
 
 
 const router=Router()
@@ -20,5 +21,12 @@ router.get("/trainers",verifyToken,getTrainer)
 router.get("/trainers/:id",verifyToken,getTrainerById)
 router.patch("/trainers/:id",verifyToken,updateTrainer)
 router.delete("/trainers/:id",verifyToken,removeTrainer)
+
+
+router.post("/members",verifyToken,addMember)
+router.get("/members",verifyToken,getMembers)
+router.get("/members/:id",verifyToken,getMemberById)
+router.patch("/members/:id",verifyToken,updateMember)
+router.delete("/members/:id",verifyToken,removeMember)
 
 export default router;
