@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addMember, addMembership, addTrainer, dashboard, getMemberById, getMembers, getMembershipById, getMemberships, getProfile, getTrainer, getTrainerById, removeMember, removeMembership, removeTrainer, updateMember, updateMembership, updateTrainer } from "../controllers/gym/gymController";
+import { addMember, addMembership, addTrainer, dashboard, getMemberById, getMembers, getMembershipById, getMemberships, getProfile, getTrainer, getTrainerById, removeMember, removeMembership, removeTrainer, updateGym, updateMember, updateMembership, updateTrainer } from "../controllers/gym/gymController";
 import { verifyToken } from "../utils/jwt";
 import { verify } from "node:crypto";
 
@@ -10,6 +10,7 @@ const router=Router()
 //general
 router.get("/profile",verifyToken, getProfile);
 router.get("/dashboard",verifyToken,dashboard)
+router.patch("/profile/gym",verifyToken,updateGym)
 
 
 //membership

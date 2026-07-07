@@ -595,3 +595,55 @@ export const removeMember=async(req:Request,res:Response)=>{
     res.status(500).json({error:"Server error",err});
   }
 }
+
+
+export const updateGym=async(req:Request,res:Response)=>{
+  try{
+    let {gymType,address,name}=req.body;
+
+    const user=(req as any).user;
+    if(user.role!=="OWNER"){
+      return res.status(403).json({error:"Access denied"});
+    }
+    console.log(user)
+
+    const gym=await Gym.findOne({ownerId:user._id});
+    console.log(gym)
+
+    if(!gym){
+      return res.status(404).json({error:"Gym not found"});
+    }
+
+
+    if(name===undefined){
+      name=gym.name
+    }
+    if(address===undefined){
+      address=gym.address
+    }
+    if(gymType===undefined){
+      gymType=gym.gymType
+    }
+    const data=await Gym.findOneAndUpdate(
+      {ownerId: user._id},
+      {
+        name,
+        address,
+        gymType
+      },
+      {
+        returnDocument: 'after'
+      }
+    )
+    console.log(data);
+    res.status(200).json({message:"Gym updated successfully",data:data});
+
+
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
+
