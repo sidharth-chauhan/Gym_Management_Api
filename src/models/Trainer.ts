@@ -3,7 +3,7 @@ import mongoose, { Document, Schema, model } from "mongoose";
 
 interface ITrainer extends Document{
   joinedDate: Date;
-  experience: number;
+  experienceInMonth: number;
   gymId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   specialization?: string;
@@ -14,7 +14,7 @@ const trainerSchema=new Schema<ITrainer>({
     type: Date,
     required: true
   },
-  experience:{
+  experienceInMonth:{
     type: Number,
     required: true
   },

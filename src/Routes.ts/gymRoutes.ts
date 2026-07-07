@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addMembership, dashboard, getMembershipById, getMemberships, getProfile, removeMembership, updateMembership } from "../controllers/gym/gymController";
+import { addMembership, addTrainer, dashboard, getMembershipById, getMemberships, getProfile, getTrainer, getTrainerById, removeMembership, removeTrainer, updateMembership, updateTrainer } from "../controllers/gym/gymController";
 import { verifyToken } from "../utils/jwt";
 
 
@@ -13,5 +13,12 @@ router.get("/memberships",verifyToken,getMemberships)
 router.get("/memberships/:id",verifyToken,getMembershipById)
 router.patch("/memberships/:id",verifyToken,updateMembership)
 router.delete("/memberships/:id",verifyToken,removeMembership)
+
+
+router.post("/trainers",verifyToken,addTrainer)
+router.get("/trainers",verifyToken,getTrainer)
+router.get("/trainers/:id",verifyToken,getTrainerById)
+router.patch("/trainers/:id",verifyToken,updateTrainer)
+router.delete("/trainers/:id",verifyToken,removeTrainer)
 
 export default router;
