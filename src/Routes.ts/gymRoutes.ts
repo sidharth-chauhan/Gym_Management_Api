@@ -10,6 +10,7 @@ const router=Router()
 //general
 router.get("/profile",verifyToken, getProfile);
 router.get("/dashboard",verifyToken,dashboard)
+
 router.patch("/profile/gym",verifyToken,updateGym)
 router.get("/fullgym",getAllGym)
 
