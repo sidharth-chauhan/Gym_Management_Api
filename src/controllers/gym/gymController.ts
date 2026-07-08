@@ -418,6 +418,12 @@ export const addMember=async(req:Request,res:Response)=>{
     if(!name || !email || !password || !trainerId || !membershipId){
       return res.status(400).json({error:"All fields are required"});
     }
+    if(await Trainer.findById(trainerId)===null){
+      return res.status(404).json({error:"Trainer not found"});
+    }
+    if(await Membership.findById(membershipId)===null){
+      return res.status(404).json({error:"Membership plan not found"});
+    }
     const owner=(req as any).user;
     if(!owner){
       return res.status(403).json({error:"Access denied"});
@@ -437,9 +443,12 @@ export const addMember=async(req:Request,res:Response)=>{
       password: hashpass,
       phoneNumber
     })
+    
     const membership=await Membership.findById(membershipId);
     const joinedDate=new Date();
     const membershipEndDate=new Date(joinedDate.getTime() + membership!.durationInMonth * 30 * 24 * 60 * 60 * 1000);
+    
+
     const member=await Member.create({
       trainerId,
       membershipId,
@@ -647,3 +656,122 @@ export const updateGym=async(req:Request,res:Response)=>{
 }
 
 
+export const getAllGym=async(req:Request,res:Response)=>{
+  try{
+    const gyms=await Gym.find({}).select("-password");
+    console.log(gyms);
+    res.status(200).json({message:"All gyms",data:gyms});
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
+
+
+export const updateOwnMemberProfile=async(req:Request,res:Response)=>{
+  try{
+    let {weight,dob,phoneNumber}=req.body
+    const user=(req as any).user;
+    if(!user){
+      return res.status(403).json({error:"Access denied"});
+    }
+    const member=await Member.findOne({userId:user._id});
+    console.log(member);
+    
+    const userProfile=await User.findById(user._id).select("-password");
+    console.log(userProfile);
+
+    if(weight===undefined ){
+      weight=member?.weight
+    }
+    if(dob===undefined){
+      dob=member?.dob
+    }
+    if(phoneNumber===undefined){
+      phoneNumber=userProfile?.phoneNumber
+    }
+    console.log(weight,dob,phoneNumber);
+    await Member.findOneAndUpdate({
+      userId:user._id
+    },{
+      weight,
+      dob
+    },{
+      new:true
+    })
+    await User.findByIdAndUpdate(user._id,{phoneNumber})
+    res.status(200).json({message:"Profile updated successfully",data:{weight,dob,phoneNumber}});
+
+    
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+
+  }
+}
+
+
+
+export const updateOwnTrainerProfile=async(req:Request,res:Response)=>{
+  try{
+    let {experienceInMonth,specialization,phoneNumber}=req.body;
+    const user=(req as any).user;
+    if(user.role!=="TRAINER"){
+      return res.status(403).json({error:"Access denied"});
+    }
+
+    if(!user){
+      return res.status(403).json({error:"Access denied"});
+    }
+
+    const userProfile=await User.findById(user._id).select("-password");
+    if(!userProfile){
+      return res.status(404).json({error:"User not found"});
+    }
+    const trainer=await Trainer.findOne({userId:user._id});
+    if(!trainer){
+      return res.status(404).json({error:"Trainer not found"});
+    }
+    if(experienceInMonth===undefined){
+      experienceInMonth=trainer.experienceInMonth
+    }
+    if(specialization===undefined){
+      specialization=trainer.specialization
+    }
+    if(phoneNumber===undefined){
+      phoneNumber=userProfile.phoneNumber
+    }
+
+    await Trainer.findOneAndUpdate(
+      {userId:user._id},
+      {
+        experienceInMonth,
+        specialization
+      },
+      {
+        new:true
+      }
+    )
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        phoneNumber
+      },
+      {
+        new:true
+      }
+    )
+
+    console.log(experienceInMonth,specialization,phoneNumber);
+    res.status(200).json({message:"Profile updated successfully",data:{experienceInMonth,specialization,phoneNumber}});
+
+
+
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
