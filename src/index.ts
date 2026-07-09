@@ -4,12 +4,15 @@ import {connectDB} from '../database';
 import User from './models/User';
 import authRoutes from './Routes.ts/authRoutes';
 import gymRoutes from './Routes.ts/gymRoutes';
+import cors from 'cors';
 
 
 
 dotenv.config();
 connectDB();
 const app=express();
+app.use(cors());
+
 app.use(express.json());
 
 app.use("/api/user",authRoutes) 
