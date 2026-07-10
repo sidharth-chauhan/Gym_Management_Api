@@ -136,7 +136,9 @@ export const getMembershipById=async (req:Request,res:Response)=>{
     if(!user){
       return res.status(403).json({error:"Access denied"});
     }
-    const gymId=await Gym.findById(user._id)
+    console.log(user)
+    const gymId=await Gym.findOne({ownerId:user._id})
+    console.log(gymId)
     if(!gymId){
       return res.status(404).json({error:"Gym not found"});
     }
@@ -497,6 +499,7 @@ export const getMembers=async(req:Request,res:Response)=>{
       const trainerName=await User.findById((member.trainerId as any).userId).select("name");
       return{
         userId:(member.userId as any)._id,
+        memberId:member._id,
         name:(member.userId as any).name,
         trainerId:(member.trainerId as any)._id,
         trainerIdName:trainerName?.name,
@@ -516,29 +519,36 @@ export const getMembers=async(req:Request,res:Response)=>{
 
 export const getMemberById=async(req:Request,res:Response)=>{
   try{
+    const user=(req as any).user;
     const memberId=req.params.id;
-    const owner=(req as any).user;
-    if(owner.role!=="OWNER"){
+    const gymId=await Gym.findOne({ownerId:user._id});
+    
+    
+    const member=await Member.findOne({gymId:gymId?._id, _id:memberId}).populate("userId","-password").populate("trainerId","-password").populate("membershipId");
+    console.log(member);
+    if(!member){
+      return res.status(404).json({error:"Member not found"});
+    }
+    if(user.role!=="OWNER"){
       return res.status(403).json({error:"Access denied"});
     }
-    if(!memberId){
-      return res.status(400).json({error:"Member id is required"});
-    }
-    const member=await Member.findById(memberId).populate("userId","-password").populate("trainerId").populate("membershipId");
-    console.log(member);
-    const trainerName=await User.findById((member?.trainerId as any).userId).select("name");
     const data={
-      memberId: member?._id,
-      userId: (member?.userId as any)._id,
-      memberName: (member?.userId as any).name,
-      trinerId: (member?.trainerId as any)._id,
-      trainerName: trainerName?.name,
-      membershipId: (member?.membershipId as any)._id,
-      membershipPlanName: (member?.membershipId as any).planName,
-      membershipEndDate: member?.membershipEndDate
+      userId:(member.userId as any)._id,
+      memberId:member._id,
+      name:(member.userId as any).name,
+      trainerId:(member.trainerId as any)._id,
+      membershipId:(member.membershipId as any)._id,
+      weight:member.weight,
+      diet:member.diet,
+      dob:member.dob,
+      status:member.status,
+      joinedDate:member.joinedDate,
+      membershipEndDate:member.membershipEndDate
     }
-    console.log(data);
     res.status(200).json({message:"Member",data:data});
+
+
+    
 
   }catch(err){
     console.error(err);
