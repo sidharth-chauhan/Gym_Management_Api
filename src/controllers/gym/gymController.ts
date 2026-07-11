@@ -23,7 +23,13 @@ export const getProfile=async (req:Request, res:Response)=>{
       return res.status(404).json({error:"User not found"});
     }
     console.log(user);
-    return res.status(200).json({message:"User Profile", user:userProfile});
+    const gym=await Gym.findOne({ownerId:user._id});
+    const data={
+      gymId:gym?._id,
+      gymName:gym?.name,
+      ...userProfile.toObject()
+    }
+    return res.status(200).json({message:"User Profile", user:data});
     
 
   }catch(error){
@@ -48,21 +54,14 @@ export const dashboard=async (req:Request,res:Response)=>{
     const trainersCount= await Trainer.countDocuments({gymId:gymId._id});
     const membershipsCount= await membership.countDocuments({gymId:gymId._id});
 
-    let totalRevenue: any= await Payment.aggregate([
-      {
-        $match:{gymId:gymId._id}
-      },
-      {
-        $group:{
-          _id:null,
-          totalAmount:{
-            $sum:"$amount"
-          }
-        }
-      }
-    ])
-    let totalAmount =totalRevenue[0]?.totalAmount || 0;
-    console.log(totalAmount);
+    const payments=await Membership.find({gymId:gymId._id}).select("price");
+    console.log(payments);
+
+    const totalRevenue=payments.reduce((acc,cur)=>{
+      return acc+cur.price;
+    },0)
+    console.log(totalRevenue);
+    
 
     res.status(200).json({
       message:"Dashboard data",
@@ -70,7 +69,8 @@ export const dashboard=async (req:Request,res:Response)=>{
         membersCount,
         trainersCount,
         membershipsCount,
-        totalRevenue:totalAmount
+        totalRevenue
+        
       }
     })
 
@@ -505,6 +505,8 @@ export const getMembers=async(req:Request,res:Response)=>{
         trainerIdName:trainerName?.name,
         membershipId:(member.membershipId as any)._id,
         membershipPlanName:(member.membershipId as any).planName,
+        phoneNumber:(member.userId as any).phoneNumber,
+        
       }
     }))
     console.log(data);
