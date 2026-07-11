@@ -305,14 +305,21 @@ export const getTrainer=async(req:Request,res:Response)=>{
       return res.status(404).json({error:"Gym not found"});
     }
     const trainers=await Trainer.find({gymId:gymId._id}).populate("userId","-password");
-    const trainerData=trainers.map((trainer)=>{
+    const trainerData=await Promise.all(trainers.map(async(trainer)=>{
+
+      const trainerPhone=await User.findById((trainer.userId as any)._id).select("phoneNumber");
+      const countMember=await Member.countDocuments({trainerId:trainer._id,gymId:gymId._id});
+
       return{
-        _id:trainer._id,
+        trainerId:trainer._id,
         name: (trainer.userId as any).name,
         experienceInMonth: trainer.experienceInMonth,
         specialization: trainer.specialization,
+        phoneNumber: trainerPhone?.phoneNumber,
+        membersCount: countMember
       }
-    }) 
+    }))
+    console.log(trainerData);
     res.status(200).json({message:"Trainers",data:trainerData});
 
 
