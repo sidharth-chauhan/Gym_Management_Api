@@ -120,8 +120,21 @@ export const getMemberships=async (req:Request,res:Response)=>{
       return res.status(404).json({error:"Gym not found"});
     }
     const memberships=await Membership.find({gymId:gymId._id});
-    console.log(memberships);
-    res.status(200).json({message:"Membership plans",data:memberships});
+    const memberData=await Promise.all(memberships.map(async(membership)=>{
+      const membersCount=await Member.countDocuments({membershipId:membership._id,gymId:gymId._id});
+      
+      return{
+        membershipId:membership._id,
+        planName:membership.planName,
+        durationInMonth:membership.durationInMonth,
+        price:membership.price,
+        membersCount:membersCount
+      }
+      
+    })
+    )
+    console.log(memberData);
+    res.status(200).json({message:"Membership plans",data:memberData});
 
 
   }catch(err){
