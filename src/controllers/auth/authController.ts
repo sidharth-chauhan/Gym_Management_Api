@@ -76,3 +76,12 @@ export const loginUser = async (req:Request,res:Response)=> {
   }
 }
 
+export const test= async(req:Request,res:Response)=>{
+  try{
+    res.status(200).json({message:"Test successful"});
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error"});
+  }
+}
