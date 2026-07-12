@@ -76,9 +76,3 @@ export const loginUser = async (req:Request,res:Response)=> {
   }
 }
 
-
-export const hello= async(req:Request,res:Response)=>{
-  const payload = (req as any).user;
-  console.log(payload);
-  res.status(200).json({message:"Hello",user:payload});
-}
