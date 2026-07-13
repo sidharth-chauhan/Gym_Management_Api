@@ -78,7 +78,9 @@ Create a `.env` file.
 PORT=3000
 
 MONGODB_URI=your_mongodb_connection_string
+appName=app_name
 
+SALT=bcrypt_salt
 JWT_SECRET=your_secret_key
 ```
 
