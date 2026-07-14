@@ -1,6 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import {connectDB} from '../database';
+import {connectDB} from './database';
 import User from './models/User';
 import authRoutes from './Routes.ts/authRoutes';
 import gymRoutes from './Routes.ts/gymRoutes';
