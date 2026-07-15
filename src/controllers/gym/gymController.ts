@@ -9,6 +9,7 @@ import Membership from '../../models/Membership';
 import bcrypt from "bcrypt";
 import { spec } from 'node:test/reporters';
 import { clear } from 'node:console';
+import redisClient from '../../redis';
 
 
 
@@ -22,13 +23,32 @@ export const getProfile=async (req:Request, res:Response)=>{
     if (!userProfile){
       return res.status(404).json({error:"User not found"});
     }
+
     console.log(user);
+
+    const key=`Profile:${user._id}`;
+    const cache=await redisClient.get(key);
+    if(cache){
+      console.log("Cache hit");
+      console.log(JSON.parse(cache));
+      return res.status(200).json({message:"User Profile", user:JSON.parse(cache)});
+      
+    }
+    console.log("Cache miss");
+
     const gym=await Gym.findOne({ownerId:user._id});
     const data={
       gymId:gym?._id,
       gymName:gym?.name,
       ...userProfile.toObject()
     }
+    await redisClient.set(
+      key,
+      JSON.stringify(data),
+      {
+        EX: 60
+      }
+    )
     return res.status(200).json({message:"User Profile", user:data});
     
 
@@ -45,6 +65,14 @@ export const dashboard=async (req:Request,res:Response)=>{
     if(user.role!=="OWNER"){
       return res.status(403).json({error:"Access denied"});
     }
+
+    const key=`Dashboard:${user._id}`;
+    const cache=await redisClient.get(key);
+    if(cache){
+      console.log("Cache hit");
+      return res.status(200).json({message:"Dashboard data",data:JSON.parse(cache)});
+    }
+    
     const gymId= await Gym.findOne({ownerId:user._id})
     if (!gymId){
       return res.status(404).json({error:"Gym not found"});
@@ -62,16 +90,26 @@ export const dashboard=async (req:Request,res:Response)=>{
     },0)
     console.log(totalRevenue);
     
+    const dashboardData={
+      membersCount,
+      trainersCount,
+      membershipsCount,
+      totalRevenue
+    }
+
+    console.log("cache miss");
+
+    await redisClient.set(
+      key,
+      JSON.stringify(dashboardData),
+      {
+        EX: 60
+      }
+    )
 
     res.status(200).json({
       message:"Dashboard data",
-      data:{
-        membersCount,
-        trainersCount,
-        membershipsCount,
-        totalRevenue
-        
-      }
+      data:dashboardData
     })
 
   }catch(err){
@@ -119,6 +157,14 @@ export const getMemberships=async (req:Request,res:Response)=>{
     if(!gymId){
       return res.status(404).json({error:"Gym not found"});
     }
+
+    const key=`Memberships:${gymId._id}`;
+    const cache=await redisClient.get(key);
+    if(cache){
+      console.log("Cache hit");
+      return res.status(200).json({message:"Membership plans",data:JSON.parse(cache)});
+    }
+
     const memberships=await Membership.find({gymId:gymId._id});
     const memberData=await Promise.all(memberships.map(async(membership)=>{
       const membersCount=await Member.countDocuments({membershipId:membership._id,gymId:gymId._id});
@@ -133,6 +179,16 @@ export const getMemberships=async (req:Request,res:Response)=>{
       
     })
     )
+
+    console.log("Cache miss");
+    await redisClient.set(
+      key,
+      JSON.stringify(memberData),
+      {
+        EX: 60
+      }
+    )
+
     console.log(memberData);
     res.status(200).json({message:"Membership plans",data:memberData});
 
@@ -304,6 +360,14 @@ export const getTrainer=async(req:Request,res:Response)=>{
     if(!gymId){
       return res.status(404).json({error:"Gym not found"});
     }
+    
+    const key=`Trainers:${gymId._id}`;
+    const cache=await redisClient.get(key);
+    if(cache){
+      console.log("Cache hit");
+      return res.status(200).json({message:"Trainers",data:JSON.parse(cache)});
+    }
+
     const trainers=await Trainer.find({gymId:gymId._id}).populate("userId","-password");
     const trainerData=await Promise.all(trainers.map(async(trainer)=>{
 
@@ -319,6 +383,16 @@ export const getTrainer=async(req:Request,res:Response)=>{
         membersCount: countMember
       }
     }))
+
+    console.log("Cache miss");
+    await redisClient.set(
+      key,
+      JSON.stringify(trainerData),
+      {
+        EX: 60
+      }
+    )
+
     console.log(trainerData);
     res.status(200).json({message:"Trainers",data:trainerData});
 
@@ -509,6 +583,14 @@ export const getMembers=async(req:Request,res:Response)=>{
     if(!gymId){
       return res.status(404).json({error:"Gym not found"});
     }
+
+    const key=`Members:${gymId._id}`;
+    const cache=await redisClient.get(key);
+    if(cache){
+      console.log("Cache hit");
+      return res.status(200).json({message:"Members",data:JSON.parse(cache)});
+    }
+
     const members=await Member.find({gymId:gymId._id}).populate("userId","-password").populate("trainerId","-password").populate("membershipId");
 
     
@@ -529,6 +611,16 @@ export const getMembers=async(req:Request,res:Response)=>{
         
       }
     }))
+
+    console.log("Cache miss");
+    await redisClient.set(
+      key,
+      JSON.stringify(data),
+      {
+        EX: 60
+      }
+    )
+
     console.log(data);
     res.status(200).json({message:"Members",data:data});
 

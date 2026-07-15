@@ -5,11 +5,13 @@ import User from './models/User';
 import authRoutes from './Routes.ts/authRoutes';
 import gymRoutes from './Routes.ts/gymRoutes';
 import cors from 'cors';
+import { connectRedis } from './redis';
 
 
 
 dotenv.config();
 connectDB();
+connectRedis();
 const app=express();
 app.use(cors());
 
