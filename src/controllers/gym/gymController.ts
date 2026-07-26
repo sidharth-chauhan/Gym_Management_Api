@@ -158,7 +158,15 @@ export const getMemberships=async (req:Request,res:Response)=>{
       return res.status(404).json({error:"Gym not found"});
     }
 
+
+
     const key=`Memberships:${gymId._id}`;
+
+    const search=req.query.search as string;
+    if(search){
+      //search
+    }
+
     const cache=await redisClient.get(key);
     if(cache){
       console.log("Cache hit");
@@ -362,11 +370,18 @@ export const getTrainer=async(req:Request,res:Response)=>{
     }
     
     const key=`Trainers:${gymId._id}`;
+
+    const search=req.query.search as string;
+    if(search){
+      //search
+    }
+
     const cache=await redisClient.get(key);
     if(cache){
       console.log("Cache hit");
       return res.status(200).json({message:"Trainers",data:JSON.parse(cache)});
     }
+    
 
     const trainers=await Trainer.find({gymId:gymId._id}).populate("userId","-password");
     const trainerData=await Promise.all(trainers.map(async(trainer)=>{
@@ -585,6 +600,12 @@ export const getMembers=async(req:Request,res:Response)=>{
     }
 
     const key=`Members:${gymId._id}`;
+
+    const search=req.query.search as string;
+    if(search){
+      //search
+    }
+    
     const cache=await redisClient.get(key);
     if(cache){
       console.log("Cache hit");
