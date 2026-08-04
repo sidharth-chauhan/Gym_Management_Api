@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { changePassword, generateOtp, loginUser, registerGym,  test } from "../controllers/auth/authController";
+import { changePassword, forgotPassword, generateOtp, loginUser, registerGym,  test } from "../controllers/auth/authController";
 
 const router = Router();
 
@@ -13,6 +13,7 @@ router.get("/test", test);
 
 //forget password
 router.post("/generateOTP", generateOtp);
+router.post("/forgetPassword", forgotPassword);
 
 
 

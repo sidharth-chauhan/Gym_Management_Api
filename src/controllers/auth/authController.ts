@@ -154,8 +154,10 @@ export const generateOtp=async(req:Request,res:Response)=>{
     const findInDb=await Otp.findOne({userId:user._id});
     if(findInDb){
       console.log("already exist")
-      const updateOtp=await Otp.findOneAndUpdate({email:email},{
+      const updateOtp=await Otp.findOneAndUpdate({userId:user._id},{
         otp:otp,
+        generatedAt: new Date(),
+        expireAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes from now
       })
       const sendmail=await sendEmail(
         email,
@@ -168,7 +170,9 @@ export const generateOtp=async(req:Request,res:Response)=>{
     console.log("new entry in otp")
     const dataotp=await Otp.create({
       userId:user._id,
-      otp:otp
+      otp:otp,
+      generatedAt: new Date(),
+      expireAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes from now
     })
     console.log(dataotp)
 
@@ -187,4 +191,52 @@ export const generateOtp=async(req:Request,res:Response)=>{
 }
 
 
+export const forgotPassword=async(req: Request,res: Response)=>{
+  try{
+    const {otp,email,newPassword,confirmPassword}=req.body;
+    if(!otp || !email || !newPassword){
+      return res.status(400).json({error:"All fields are required"});
+    }
+    if(newPassword!=confirmPassword){
+      return res.status(400).json({error:"New password and confirm password do not match"});
+    }
+    const user=await User.findOne({email:email});
+    if(!user){
+      return res.status(400).json({error:"User not found"});
+    }
+    const otpdata=await Otp.findOne({userId:user?._id})
+    if(!otpdata){
+      return res.status(400).json({error:"OTP not found"});
+    }
+    console.log("Expire At:", otpdata.expireAt);
+    console.log("Current :", new Date());
+    console.log("Comparison:", otpdata.expireAt as any < new Date());
+    if ((otpdata.expireAt as any).getTime() < Date.now()) {
+        return res.status(400).json({
+            error: "OTP has expired"
+        });
+    }
+
+    const checkOtp=await Otp.findOne({userId:user?._id,otp:otp});
+    if(!checkOtp){
+      return res.status(400).json({error:"Invalid OTP"});
+    }
+    const salt=Number(process.env.SALT);
+    const hashPass=await bcrypt.hash(newPassword,salt);
+
+    const savePass=await User.findOneAndUpdate(
+      {email:email},
+      {password:hashPass}
+    )
+    console.log("password saved")
+    res.status(200).json({message:"Password updated successfully"});
+
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error"});
+
+  }
+
+}
 
