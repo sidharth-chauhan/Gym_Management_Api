@@ -4,6 +4,9 @@ import Gym from "../../models/Gym";
 import {Request,Response} from "express";
 import dotenv from "dotenv";
 import { generateToken } from "../../utils/jwt";
+import { sendEmail } from "../../utils/sendMail";
+import Otp from "../../models/Otp";
+import { send } from "node:process";
 
 export const registerGym= async(req:Request,res:Response)=>{
   try{
@@ -76,6 +79,43 @@ export const loginUser = async (req:Request,res:Response)=> {
   }
 }
 
+export const changePassword=async(req:Request,res:Response)=>{
+  try{
+    const {email,oldPassword,newPassword}=req.body;
+    if(!email || !oldPassword || !newPassword){
+      return res.status(400).json({error:"All fields are required"});
+    }
+    console.log(email,oldPassword,newPassword);
+    const user=await User.findOne({email:email});
+    if(!user){
+      return res.status(400).json({error:"User not found"});
+    }
+    const salt=Number(process.env.SALT);
+    const hashPass=await bcrypt.hash(newPassword,salt);
+
+    const comparePass=await bcrypt.compare(oldPassword,user.password);
+    if(!comparePass){
+      return res.status(400).json({error:"Old password is incorrect"});
+    }
+    const updatePass=await User.findOneAndUpdate(
+      {email:email},
+      {
+      password:hashPass
+    }
+    )
+    if(!(updatePass as any)){
+      return res.status(400).json({error:"Password not updated"});
+    }
+    res.status(200).json({message:"Password updated successfully"});
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error"});
+  }
+
+}
+
+
+
 export const test= async(req:Request,res:Response)=>{
   try{
     res.status(200).json({message:"Test successful"});
@@ -85,3 +125,66 @@ export const test= async(req:Request,res:Response)=>{
     res.status(500).json({error:"Server error"});
   }
 }
+
+
+
+function findAndUpdate(arg0: { email: any; }, arg1: { password: string; }) {
+  throw new Error("Function not implemented.");
+}
+
+
+
+//forget password
+
+export const generateOtp=async(req:Request,res:Response)=>{
+  try{
+    
+    const {email}=req.body
+    if(!email){
+      return res.status(400).json({error:"Email is required"});
+    }
+    const user=await User.findOne({email:email});
+    console.log(user)
+    if(!user){
+      return res.status(400).json({error:"User not found"});
+    }
+    console.log("generateOtp")
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const findInDb=await Otp.findOne({userId:user._id});
+    if(findInDb){
+      console.log("already exist")
+      const updateOtp=await Otp.findOneAndUpdate({email:email},{
+        otp:otp,
+      })
+      const sendmail=await sendEmail(
+        email,
+        "Gym Management - Password Reset OTP",
+        `Hello,\n\nYour OTP for password reset is ${otp}.\n\nThis OTP is valid for 5 minutes.\nIf you did not request this, please ignore this email.\n\nRegards,\nGym Management Team`
+      );
+
+      return res.status(200).json({message:`OTP sent successfully to ${user.email}`,});
+    }
+    console.log("new entry in otp")
+    const dataotp=await Otp.create({
+      userId:user._id,
+      otp:otp
+    })
+    console.log(dataotp)
+
+    const sendmail=await sendEmail(
+      email,
+      "Gym Management - Password Reset OTP",
+      `Hello,\n\nYour OTP for password reset is ${otp}.\n\nThis OTP is valid for 5 minutes.\nIf you did not request this, please ignore this email.\n\nRegards,\nGym Management Team`
+    );
+
+    res.status(200).json({message:`OTP sent successfully to ${user.email}`,});
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error"});
+  }
+}
+
+
+
