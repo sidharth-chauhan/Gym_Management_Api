@@ -1034,4 +1034,48 @@ export const searchTrainers=async(req:Request,res:Response)=>{
 }
 
 
+export const searchMemberships=async(req:Request,res:Response)=>{
+  try{
+    const user=(req as any).user;
+    if(user.role!=="OWNER" ){
+      return res.status(403).json({error:"Access denied"});
+    }
+    const gymId=await Gym.findOne({ownerId:user._id});
+    if(!gymId){
+      return res.status(404).json({error:"Gym not found"});
+    }
+    const searchName=req.params.query as string;
 
+    const memberships=await Membership.find({
+      gymId: gymId._id,
+      planName: {
+        $regex: searchName,
+        $options: "i"
+      }
+    })
+    .populate("gymId")
+
+    const data= await Promise.all(
+      memberships.map( async (membership)=>{
+      const memberCount= await Member.countDocuments({membershipId:membership._id,gymId:gymId._id});
+      return{
+        membershipId: membership._id,
+        planName: membership.planName,
+        durationInMonth: membership.durationInMonth,
+        price: membership.price,
+        memberCount: memberCount
+
+      }
+    }))
+    console.log(data);
+    
+    res.status(200).json({message:"Memberships",data:data});
+
+
+    
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
