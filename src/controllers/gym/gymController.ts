@@ -933,6 +933,9 @@ export const searchMembers=async(req:Request,res:Response)=>{
       return res.status(404).json({error:"Gym not found"});
     }
     const searchName = req.params.query;
+    if(searchName.length < 3){
+      return res.status(400).json({error:"Search query must be at least 3 characters long"});
+    }
 
     const members = await Member.find({
         gymId: gymId._id
@@ -987,6 +990,9 @@ export const searchTrainers=async(req:Request,res:Response)=>{
       return res.status(403).json({error:"Access denied"});
     }
     const searchName=req.params.query;
+    if( searchName.length < 3){
+      return res.status(400).json({error:"Search query must be at least 3 characters long"});
+    }
     const gymId=await Gym.findOne({ownerId:user._id});
     if (!gymId){
       return res.status(404).json({error:"Gym not found"});
@@ -1045,6 +1051,9 @@ export const searchMemberships=async(req:Request,res:Response)=>{
       return res.status(404).json({error:"Gym not found"});
     }
     const searchName=req.params.query as string;
+    if(searchName.length <3){
+      return res.status(400).json({error:"Search query must be at least 3 characters long"});
+    }
 
     const memberships=await Membership.find({
       gymId: gymId._id,
