@@ -950,12 +950,26 @@ export const searchMembers=async(req:Request,res:Response)=>{
     .populate("trainerId")
     .populate("membershipId");
 
-    
-
     const filteredMembers =await members.filter(member => member.userId);
 
     console.log(filteredMembers);
-    
+    console.log("--------------------------------------------------------------------")
+
+    const data=await Promise.all( filteredMembers.map( async (member)=>{
+      const trainerIdName= await User.findById((member.trainerId as any).userId).select("name");
+      return{
+        userId: (member.userId as any)._id,
+        memberId: member._id,
+        name: (member.userId as any).name,
+        trainerId: (member.trainerId as any)._id,
+        trainerIdName: trainerIdName?.name,
+        membershipId: (member.membershipId as any)._id,
+        membershipPlanName: (member.membershipId as any).planName,
+        phoneNumber: (member.userId as any).phoneNumber,
+      }
+    }))
+    console.log(data);
+    res.status(200).json({message:"Members",data:data});
     
 
   }catch(err){
@@ -977,8 +991,40 @@ export const searchTrainers=async(req:Request,res:Response)=>{
     if (!gymId){
       return res.status(404).json({error:"Gym not found"});
     }
-    const trainer= await Trainer.find({gymId:gymId?._id}).populate("userId","-password");
+    const trainer=await Trainer.find({
+      gymId:gymId._id
+    })
+    .populate({
+        path: "userId",
+        match:{
+          name:{
+            $regex: searchName,
+            $options: "i"
+          }
+        }
+    })
+    .populate("gymId")
 
+    const filteredTrainer= trainer.filter(trainer=>trainer.userId);
+
+    console.log(filteredTrainer);
+
+    const data= await Promise.all(
+      filteredTrainer.map(async (trainer)=>{
+      const membercount= await Member.countDocuments({trainerId:trainer._id,gymId:gymId._id});
+      return {
+        trainerId: trainer._id,
+        name : (trainer.userId as any).name,
+        experienceInMonth: trainer.experienceInMonth,
+        specialization: trainer.specialization,
+        phoneNumber: (trainer.userId as any).phoneNumber,
+        membersCount: membercount
+        
+      }
+
+    }))
+    res.status(200).json({message:"Trainers",data:data});
+    
 
 
   }catch(err){
@@ -986,4 +1032,6 @@ export const searchTrainers=async(req:Request,res:Response)=>{
     res.status(500).json({error:"Server error",err});
   }
 }
+
+
 
