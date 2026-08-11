@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addMember, addMembership, addTrainer, dashboard, getAllGym, getMemberById, getMembers, getMembershipById, getMemberships, getProfile, getTrainer, getTrainerById, removeMember, removeMembership, removeTrainer, updateGym, updateMember, updateMembership, updateOwnMemberProfile, updateOwnTrainerProfile, updateTrainer } from "../controllers/gym/gymController";
+import { addMember, addMembership, addTrainer, dashboard, getAllGym, getMemberById, getMembers, getMembershipById, getMemberships, getProfile, getTrainer, getTrainerById, removeMember, removeMembership, removeTrainer, searchMembers, searchTrainers, updateGym, updateMember, updateMembership, updateOwnMemberProfile, updateOwnTrainerProfile, updateTrainer } from "../controllers/gym/gymController";
 import { verifyToken } from "../utils/jwt";
 import { verify } from "node:crypto";
 
@@ -41,6 +41,10 @@ router.patch("/members/:id",verifyToken,updateMember)
 router.delete("/members/:id",verifyToken,removeMember)
 
 router.patch("/member/profile",verifyToken,updateOwnMemberProfile)
+
+// search 
+router.get("/search/members/:query",verifyToken,searchMembers)
+router.get("/searcah/trainers/:query",verifyToken,searchTrainers)
 
 
 export default router;

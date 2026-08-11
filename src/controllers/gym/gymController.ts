@@ -920,3 +920,70 @@ export const updateOwnTrainerProfile=async(req:Request,res:Response)=>{
     res.status(500).json({error:"Server error",err});
   }
 }
+
+
+export const searchMembers=async(req:Request,res:Response)=>{
+  try{
+    const user=(req as any).user;
+    if(user.role!=="OWNER" ){
+      return res.status(403).json({error:"Access denied"});
+    }
+    const gymId=await Gym.findOne({ownerId:user._id});
+    if(!gymId){
+      return res.status(404).json({error:"Gym not found"});
+    }
+    const searchName = req.params.query;
+
+    const members = await Member.find({
+        gymId: gymId._id
+    })
+    .populate({
+        path: "userId",
+        match: {
+            name: {
+                $regex: searchName,
+                $options: "i"
+            }
+        },
+        select: "-password"
+    })
+    .populate("trainerId")
+    .populate("membershipId");
+
+    
+
+    const filteredMembers =await members.filter(member => member.userId);
+
+    console.log(filteredMembers);
+    
+    
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
+
+
+export const searchTrainers=async(req:Request,res:Response)=>{
+  try{
+    const user=(req as any).user;
+    if(user.role!=="OWNER" ){
+      return res.status(403).json({error:"Access denied"});
+    }
+    const searchName=req.params.query;
+    const gymId=await Gym.findOne({ownerId:user._id});
+    if (!gymId){
+      return res.status(404).json({error:"Gym not found"});
+    }
+    const trainer= await Trainer.find({gymId:gymId?._id}).populate("userId","-password");
+
+
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error",err});
+  }
+}
+
